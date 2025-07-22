@@ -10,7 +10,9 @@ import {
 } from "@/constants/contract";
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
 import toast from "react-hot-toast";
-import { useSearchParams } from "next/navigation";
+import SaleCart from "@/components/saleCart";
+import { CircularProgress } from "@mui/material";
+import PurchaseSuccessModal from "@/components/Home/purchageSuccessModal";
 
 const SaleNode = () => {
   const { address } = useAccount();
@@ -31,65 +33,99 @@ const SaleNode = () => {
     }[]
   >([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [counts, setCounts] = useState<{ [key: string]: number }>({});
+  const [initialCount, setInitialCount] = useState<{ [key: string]: number }>(
+    {}
+  );
   const [refInput, setRefInput] = useState("");
   const [isLoading, setIsLoading] = useState(false); // Main loading state for fetching phase list
+  const [isIdLoader, setIsIdLoader] = useState(""); // Main loading state for fetching phase list
+  const [isApIdLoader, setApIsIdLoader] = useState(""); // Main loading state for fetching phase list
   const [isModalLoading, setIsModalLoading] = useState(false); // Loading state for modal operations
+  const [isOpen, setIsOpen] = useState(false); // Loading state for modal operations
+  const [isApprove, setIsApprove] = useState(false); // Loading state for modal operations
+  const [categoryId, setCategoryId] = useState(""); // Loading state for modal operations
+
   const maxNodes = 10;
 
+  const {
+    data: buyHash,
+    writeContract: buyToken,
+    isPending: isBuying,
+    isError,
+    isSuccess,
+
+    error,
+  } = useWriteContract();
+
   // Initialize counts for each phase when phaseList is loaded
-  useEffect(() => {
-    if (phaseList.length > 0) {
-      const initialCounts = phaseList.reduce((acc, phase) => {
-        acc[phase.id] = 1; // Default count of 1 for each phase
-        return acc;
-      }, {} as { [key: string]: number });
-      setCounts(initialCounts);
-    }
-  }, [phaseList]);
+  // useEffect(() => {
+  //   if (phaseList.length > 0) {
+  //     const initialCounts = phaseList.reduce((acc, phase) => {
+  //       acc[phase.id] = 1; // Default count of 1 for each phase
+  //       return acc;
+  //     }, {} as { [key: string]: number });
+  //     setCounts(initialCounts);
+  //   }
+  // }, [phaseList]);
 
-  const handlePlus = (phaseId: string) => {
-    setCounts((prevCounts) => {
-      if (prevCounts[phaseId] < maxNodes) {
-        return { ...prevCounts, [phaseId]: prevCounts[phaseId] + 1 };
-      }
-      return prevCounts;
-    });
-  };
+  // const handlePlus = (phaseId: string) => {
+  //   setCounts((prevCounts) => {
+  //     if (prevCounts[phaseId] < maxNodes) {
+  //       return { ...prevCounts, [phaseId]: prevCounts[phaseId] + 1 };
+  //     }
+  //     return prevCounts;
+  //   });
+  // };
 
-  const handleMinus = (phaseId: string) => {
-    setCounts((prevCounts) => {
-      if (prevCounts[phaseId] > 1) {
-        return { ...prevCounts, [phaseId]: prevCounts[phaseId] - 1 };
-      }
-      return prevCounts;
-    });
-  };
+  // const handleMinus = (phaseId: string) => {
+  //   setCounts((prevCounts) => {
+  //     if (prevCounts[phaseId] > 1) {
+  //       return { ...prevCounts, [phaseId]: prevCounts[phaseId] - 1 };
+  //     }
+  //     return prevCounts;
+  //   });
+  // };
 
   const stakeAmountWei = BigInt(
     "115792089237316195423570985008687907853269984665640564039457584007913129639935"
   );
 
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  // const searchParams = useSearchParams();
+  // const id = searchParams.get("id");
+  const id = "1";
+
+  useEffect(() => {
+    if (isSuccess && buyHash) {
+      setIsOpen(true);
+      setIsIdLoader("");
+    }
+  }, [isSuccess, buyHash]);
 
   const {
     data: approveHash,
     writeContract: approveToken,
     isPending: isApproving,
+    error: errorApprove,
   } = useWriteContract();
 
-  const approveTokenContract = async () => {
+  useEffect(() => {
+    if (errorApprove) {
+      setApIsIdLoader("");
+    }
+  }, [errorApprove]);
+
+  const approveTokenContract = async (id: string) => {
     try {
-      setIsLoading(true); // Show loader for approval
+      setApIsIdLoader(id);
+      setIsLoading(true);
       await approveToken({
         address: DepositToken as `0x${string}`,
         abi: DepositTokenABI,
         functionName: "approve",
         args: [ContractSaleAddress as `0x${string}`, stakeAmountWei],
       });
-      toast.loading("Approving tokens...");
     } catch (error) {
+      setApIsIdLoader("");
       console.error("Approval error:", error);
       toast.error("Failed to approve tokens", { duration: 5000 });
     } finally {
@@ -112,7 +148,7 @@ const SaleNode = () => {
     }
   };
 
-  const { data: allowanceRaw } = useReadContract({
+  const { data: allowanceRaw, refetch: refetchAllowance } = useReadContract({
     address: DepositToken as `0x${string}`,
     abi: DepositTokenABI,
     functionName: "allowance",
@@ -121,14 +157,22 @@ const SaleNode = () => {
       enabled: !!address,
     },
   });
-  const allowance = typeof allowanceRaw === "bigint" ? allowanceRaw : BigInt(0);
+  let allowance = typeof allowanceRaw === "bigint" ? allowanceRaw : BigInt(0);
 
   useEffect(() => {
     if (approveHash) {
+      refetchAllowance();
       toast.success("Tokens approved successfully", { duration: 5000 });
-      window.location.reload();
+      allowance = BigInt(12473128);
+      setApIsIdLoader("");
     }
-  }, [approveHash]);
+  }, [approveHash, refetchAllowance]);
+
+  useEffect(() => {
+    if (error) {
+      setIsIdLoader("");
+    }
+  }, [error]);
 
   useEffect(() => {
     const fetchPhaseList = async () => {
@@ -149,28 +193,31 @@ const SaleNode = () => {
     fetchPhaseList();
   }, [id]);
 
-  const {
-    data: buyHash,
-    writeContract: buyToken,
-    isPending: isBuying,
-  } = useWriteContract();
-
-  const buyTokenNodeContract = async (id1: string, price: bigint) => {
+  const buyTokenNodeContract = async (
+    id1: string,
+    price: string,
+    counts: number
+  ) => {
     try {
+      setIsIdLoader(id1);
+      setCategoryId(id1);
+      const filPrice = Math.floor(Number(price));
       setIsLoading(true); // Show loader for buying
       const ref = localStorage.getItem("ref");
       const refAddress =
         ref && ref !== "null"
           ? ref
-          : "0x0000000000000000000000000000000000000000";
+          : "0x93052C94D595746e230FA08C658740BF2fD65F60";
 
-      const amount = BigInt(price) * BigInt(counts[id1]) * BigInt(10 ** 18);
+      const amount = filPrice * 10 ** 18 * counts;
+      // // const amount =  BigInt(Math.floor(price)) * BigInt(counts[id1]) * BigInt(10 ** 18);
+      console.log(amount, "getting tge");
 
       console.log("Calling buyNFT with:", {
         id,
         id1,
         amount: amount.toString(),
-        count: counts[id1],
+        count: counts,
         ref: refAddress,
       });
 
@@ -178,11 +225,14 @@ const SaleNode = () => {
         address: ContractSaleAddress as `0x${string}`,
         abi: ContractSaleABI,
         functionName: "buyNFT",
-        args: [id, id1, amount, counts[id1], refAddress],
+        args: [id, id1, amount, counts, refAddress],
       });
+
+      // setIsIdLoader("");
 
       toast.loading("Buying Node...", { duration: 5000 });
     } catch (error) {
+      setIsIdLoader("");
       console.error("Buy token error:", error);
       toast.error("Failed to buy node", { duration: 5000 });
     } finally {
@@ -192,12 +242,23 @@ const SaleNode = () => {
 
   useEffect(() => {
     if (buyHash) {
+      setIsIdLoader("");
       toast.success("Transaction successful", { duration: 5000 });
     }
   }, [buyHash]);
 
+  console.log(isIdLoader, "isIdLoader");
+
   return (
     <>
+      {isOpen && (
+        <PurchaseSuccessModal
+          hash={buyHash}
+          categoryId={Number(categoryId)}
+          isOpen={isOpen}
+          setIsOpen={setIsOpen}
+        />
+      )}
       {isModalOpen && (
         <>
           <div className="modal-blur-overlay"></div>
@@ -248,36 +309,35 @@ const SaleNode = () => {
           </div>
         </>
       )}
-      {isLoading ? (
+      {/* {isLoading ? ( */}
+      {/* {true ? (
         <div
           className="d-flex justify-content-center align-items-center"
           style={{ height: "100vh" }}
         >
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden"></span>
-          </div>
+          <CircularProgress color="secondary" size={50} />
         </div>
-      ) : (
-        <main id="main">
-          <div className="header2"></div>
-          <div
-            id="about"
-            className="bg-light about section-header position-relative overflow-hidden"
-          >
-            <div className="container">
-              <div className="row justify-content-center">
-                <div className="col-lg-8">
-                  <div className="text-center mb-4">
-                    <h3>
-                      Limited <span className="textpink2">Node Sale</span>
-                    </h3>
-                    <p className="lead text-muted small font-weight-bold">
-                      Secure Your Spot & Earn More
-                    </p>
-                  </div>
+      ) : ( */}
+      <main id="main">
+        <div className="header2"></div>
+        <div
+          id="about"
+          className="bg-light about section-header position-relative overflow-hidden"
+        >
+          <div className="container">
+            <div className="row justify-content-center">
+              <div className="col-lg-8">
+                <div className="text-center mb-4">
+                  <h3>
+                    Limited <span className="textpink2">Node Sale</span>
+                  </h3>
+                  <p className="lead text-muted small font-weight-bold">
+                    Secure Your Spot & Earn More
+                  </p>
                 </div>
               </div>
-              <div className="row">
+            </div>
+            {/* <div className="row">
                 {phaseList?.map((phase, index) => (
                   <div className="col-lg-4" key={phase.id}>
                     <div className="bgSlot d-flex justify-content-between text-white font-weight-bold p-2">
@@ -300,14 +360,7 @@ const SaleNode = () => {
                             {phase.supply_cap}
                           </span>
                         </div>
-                        {/* <div className="d-flex justify-content-between mb-1">
-                          <span className="small fw-bold">
-                            Expected Earning
-                          </span>
-                          <span className="small fw-bold">
-                            {phase.expected_earning}
-                          </span>
-                        </div> */}
+                        
                         <div className="d-flex justify-content-between mb-1">
                           <span className="small fw-bold">Start</span>
                           <span className="small fw-bold">{phase.start}</span>
@@ -365,7 +418,7 @@ const SaleNode = () => {
                         </button>
                       </div>
                       <div className="d-flex justify-content-between mb-2 small mb-4">
-                        {/* <span>Your Balance: 0 BNB</span> */}
+                   
                         <span>
                           Total Price:{" "}
                           {(counts[phase.id] || 1) * Number(phase.price)} USDT
@@ -426,11 +479,29 @@ const SaleNode = () => {
                     </div>
                   </div>
                 ))}
+              </div> */}
+
+            {isLoading ? (
+              <div className=" flex items-center justify-center mx-auto text-center">
+                <CircularProgress color="secondary" size={50} />
               </div>
-            </div>
+            ) : (
+              <SaleCart
+                saleDataArr={phaseList}
+                allowance={allowance}
+                isBuying={isBuying}
+                isApproving={isApproving}
+                approveTokenContract={approveTokenContract}
+                isLoading={isLoading}
+                buyTokenNodeContract={buyTokenNodeContract}
+                setIsModalOpen={setIsModalOpen}
+                isIdLoader={isIdLoader}
+                isApIdLoader={isApIdLoader}
+              />
+            )}
           </div>
-        </main>
-      )}
+        </div>
+      </main>
     </>
   );
 };

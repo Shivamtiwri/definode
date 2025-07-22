@@ -1,18 +1,21 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 
 const SlideSection = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const ref = urlParams.get("ref");
   useEffect(() => {
-    if (ref) {
-      localStorage.setItem("ref", ref);
+    // This runs only on the client
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get("ref");
+
+    if (refParam) {
+      localStorage.setItem("ref", refParam);
+      // optionally store it in state
     }
-  }, [ref]);
+  }, []);
 
   const { openConnectModal } = useConnectModal();
   const { address, isConnected } = useAccount();

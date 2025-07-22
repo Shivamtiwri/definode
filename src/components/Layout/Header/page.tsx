@@ -31,56 +31,56 @@ const HeaderMain = () => {
   }, []);
 
   // Generate nonce only when needed
-  useEffect(() => {
-    if (!token && isConnected && address) {
-      const newNonce = generateNonce();
-      setNonce(newNonce);
-    }
-  }, [token, isConnected, address]);
+  // useEffect(() => {
+  //   if (!token && isConnected && address) {
+  //     const newNonce = generateNonce();
+  //     setNonce(newNonce);
+  //   }
+  // }, [isConnected, address]);
 
   // Sign message when nonce and address are available
-  useEffect(() => {
-    if (nonce && address && isConnected) {
-      signMessage({ message: nonce });
-    }
-  }, [nonce, address, isConnected, signMessage]);
+  // useEffect(() => {
+  //   if (nonce && address && isConnected) {
+  //     signMessage({ message: nonce });
+  //   }
+  // }, [nonce, address, isConnected, signMessage]);
 
   const generateNonce = () => {
     return Math.floor(Math.random() * 0xffffff).toString(32);
   };
 
-  const handleLogin = useCallback(async () => {
-    if (!address || !signMessageData) return;
+  // const handleLogin = useCallback(async () => {
+  //   if (!address || !signMessageData) return;
 
-    try {
-      const result = await login(
-        address as `0x${string}`,
-        ref || "0x0000000000000000000000000000000000000000",
-        signMessageData as `0x${string}`,
-        encryptText(nonce)
-      );
+  //   try {
+  //     const result = await login(
+  //       address as `0x${string}`,
+  //       ref || "0x0000000000000000000000000000000000000000",
+  //       signMessageData as `0x${string}`,
+  //       encryptText(nonce)
+  //     );
 
-      if (result.success) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem("token", result.data.data.token);
-          setToken(result.data.data.token);
-        }
-        toast.success(result.data.message);
-      } else {
-        toast.error(result.error.message);
-      }
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "An error occurred during login"
-      );
-    }
-  }, [address, ref, signMessageData, nonce]);
+  //     if (result.success) {
+  //       if (typeof window !== "undefined") {
+  //         localStorage.setItem("token", result.data.data.token);
+  //         setToken(result.data.data.token);
+  //       }
+  //       toast.success(result.data.message);
+  //     } else {
+  //       toast.error(result.error.message);
+  //     }
+  //   } catch (err: unknown) {
+  //     toast.error(
+  //       err instanceof Error ? err.message : "An error occurred during login"
+  //     );
+  //   }
+  // }, [address, ref, signMessageData, nonce]);
 
-  useEffect(() => {
-    if (signMessageData && nonce && isConnected) {
-      handleLogin();
-    }
-  }, [signMessageData, nonce, isConnected, handleLogin]);
+  // useEffect(() => {
+  //   if (signMessageData && nonce && isConnected) {
+  //     handleLogin();
+  //   }
+  // }, [signMessageData, nonce, isConnected, handleLogin]);
 
   return (
     <header id="header" className="fixed-top header-transparent">
