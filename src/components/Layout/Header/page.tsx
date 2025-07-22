@@ -11,6 +11,7 @@ import { useAccount, useSignMessage } from "wagmi";
 import { login } from "@/services/api";
 import toast from "react-hot-toast";
 import { encryptText } from "@/app/halper/encryption";
+import { useRouter } from "next/navigation";
 
 const HeaderMain = () => {
   const { openConnectModal } = useConnectModal();
@@ -21,7 +22,7 @@ const HeaderMain = () => {
   const [token, setToken] = useState<string | null>(null);
   const [nonce, setNonce] = useState("");
   const { data: signMessageData, signMessage } = useSignMessage();
-
+  const router = useRouter();
   // Safe access to localStorage on client only
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -29,6 +30,16 @@ const HeaderMain = () => {
       setToken(localStorage.getItem("token"));
     }
   }, []);
+  useEffect(() => {
+    if (!address) {
+      const timer = setTimeout(() => {
+        localStorage.removeItem("token");
+        setToken(null);
+        router.push(`/`);
+      }, 5000); // 5-second delay
+      return () => clearTimeout(timer); // Cleanup
+    }
+  }, [address]);
 
   // Generate nonce only when needed
   useEffect(() => {

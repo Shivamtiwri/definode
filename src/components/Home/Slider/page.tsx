@@ -4,10 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
+import { useSearchParams } from "next/navigation";
 
 const SlideSection = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const ref = urlParams.get("ref");
+  const searchParams = useSearchParams();
+  const ref = searchParams.get("ref");
+
   useEffect(() => {
     if (ref) {
       localStorage.setItem("ref", ref);

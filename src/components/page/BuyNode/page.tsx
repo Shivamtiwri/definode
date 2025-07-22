@@ -3,9 +3,12 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getPhaseList } from "@/services/api";
+import { useAccount, useReadContract } from "wagmi";
+import { ContractSaleABI, ContractSaleAddress } from "@/constants/contract";
 
 const BuyNode = () => {
   const router = useRouter();
+  const { address } = useAccount();
   const [phaseList, setPhaseList] = useState<
     { id: string; title: string; total: number }[]
   >([]);
@@ -15,13 +18,94 @@ const BuyNode = () => {
       try {
         const data = await getPhaseList();
         setPhaseList(data.data);
-        console.log("Phase List:", data);
+        // console.log("Phase List:", data);
       } catch (error) {
         console.error("Failed to fetch phase list:", error);
       }
     };
     fetchPhaseList();
   }, []);
+  const { data, error } = useReadContract({
+    address: ContractSaleAddress as `0x${string}`,
+    abi: ContractSaleABI,
+    functionName: "getUserRecord",
+    args: [address as `0x${string}`],
+    query: { enabled: !!address },
+  });
+
+  const [phaseTotals, setPhaseTotals] = useState<bigint[]>(
+    Array(10).fill(BigInt(0))
+  );
+
+  useEffect(() => {
+    // Log contract errors
+    if (error) {
+      console.error("Contract error:", error);
+      return;
+    }
+
+    // Validate data structure
+    if (!data || !Array.isArray(data) || data.length < 2) {
+      console.log("Invalid data structure:", {
+        data,
+        isArray: Array.isArray(data),
+        length: Array.isArray(data) ? data.length : undefined,
+      });
+      return;
+    }
+
+    const userRecords = data[1] as {
+      phase: bigint;
+      category: bigint;
+      amount: bigint;
+      timeStamp: bigint;
+    }[];
+
+    // Check if userRecords is an array
+    if (!Array.isArray(userRecords)) {
+      // console.log("userRecords is not an array:", userRecords);
+      return;
+    }
+
+    // console.log("Raw userRecords:", userRecords);
+
+    // Initialize array for phases 1 to 10 (index 0 to 9)
+    const totals = Array(10).fill(BigInt(0));
+
+    for (const record of userRecords) {
+      // Validate record
+      if (
+        !record ||
+        typeof record !== "object" ||
+        !("phase" in record) ||
+        !("amount" in record)
+      ) {
+        console.log("Invalid record skipped:", record);
+        continue;
+      }
+
+      const phase = Number(record.phase); // Convert bigint to number
+      const amount = record.amount; // Already bigint
+
+      if (isNaN(phase) || phase < 1 || phase > 10) {
+        console.log(`Invalid phase ${phase} in record:`, record);
+        continue;
+      }
+
+      // Update array at index (phase - 1)
+      totals[phase - 1] = (totals[phase - 1] || BigInt(0)) + amount;
+      console.log(
+        `Added ${amount} to phase ${phase}, new total: ${totals[phase - 1]}`
+      );
+    }
+
+    console.log("Final totals before setting:", totals);
+    setPhaseTotals(totals);
+  }, [data, error]);
+
+  useEffect(() => {
+    console.log("Updated phaseTotals:", phaseTotals[0]);
+  }, [phaseTotals]);
 
   const goToDashboard = (userId: string) => {
     router.push(`/Sale?id=${userId}`);
@@ -89,7 +173,7 @@ const BuyNode = () => {
                   </div>
                   <div className="prnode">
                     <span>Purchased Node</span>
-                    <span>0</span>
+                    <span>{phaseTotals[index]}</span>
                   </div>
                   <div className="text-center mt-3">
                     <button

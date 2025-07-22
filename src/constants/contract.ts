@@ -1,4 +1,4 @@
-export const ContractSaleAddress = "0x1937B75b1D872664eDe94D2688680bcC87D879f4";
+export const ContractSaleAddress = "0xa587613FC01957363c5d758F7bC9921001097061";
 export const ContractSaleABI = [
   {
     inputs: [
@@ -379,7 +379,7 @@ export const ContractSaleABI = [
   },
 ];
 
-export const DepositToken = "0x55d398326f99059ff775485246999027b3197955";
+export const DepositToken = "0x93Ddd86042Edd0F5738Ea8465E418a305A5BEF87";
 export const DepositTokenABI = [
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },
   {
