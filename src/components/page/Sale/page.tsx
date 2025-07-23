@@ -16,8 +16,7 @@ import {
 } from "wagmi";
 import toast from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
-import { readContract } from "@wagmi/core";
-
+import { parseUnits } from "viem";
 // Define types for phase list
 interface Phase {
   id: string;
@@ -55,11 +54,13 @@ const SaleNode = () => {
   ); // Store amount for buyHash
   const maxNodes = 10;
 
+  console.log(countId, "countId");
+
   // Initialize counts for each phase
   useEffect(() => {
     if (phaseList.length > 0) {
       const initialCounts = phaseList.reduce((acc, phase) => {
-        acc[phase.id] = 1;
+        acc[phase.id] = 0; // <-- HERE
         return acc;
       }, {} as { [key: string]: number });
       setCounts(initialCounts);
@@ -111,39 +112,52 @@ const SaleNode = () => {
   const { data: buyHash, writeContract: buyToken } = useWriteContract();
 
   // Buy NFT
-  const buyTokenNodeContract = async (id1: string, price: bigint) => {
+  const buyTokenNodeContract = async (id1: number, price: bigint) => {
     try {
       setIsBuying(true);
+
       const ref = localStorage.getItem("ref");
       const refAddress =
         ref && ref !== "null"
           ? ref
           : "0x0000000000000000000000000000000000000000";
-      const amount = price * BigInt(counts[id1]) * BigInt(10 ** 18);
-      setLastPurchaseAmount(amount); // Store amount for useEffect
+
+      // Ensure counts[id1] is available and a valid number
+      const quantity = counts[id1];
+      if (!quantity || quantity <= 0) {
+        toast.error("Invalid quantity selected");
+        setIsBuying(false);
+        return;
+      }
+
+      // Calculate total amount (price * quantity) in bigint (wei)
+      const amount = price * BigInt(quantity);
+      setLastPurchaseAmount(amount);
+
+      console.log(`Amount in ETH: ${Number(amount) / 10 ** 18}`, "amount");
 
       await buyToken({
         address: ContractSaleAddress as `0x${string}`,
         abi: ContractSaleABI,
         functionName: "buyNFT",
         args: [
-          id!,
-          id1,
-          Number(amount),
-          counts[id1],
+          id!, // phase id
+          id1, // category id
+          amount.toString(), // amount in wei as string
+          quantity, // quantity to purchase
           refAddress as `0x${string}`,
         ],
       });
 
       setconutID(Number(id1));
 
-      console.log(
-        id!,
-        id1,
-        Number(amount),
-        counts[id1],
-        refAddress as `0x${string}`
-      );
+      console.log("Purchase Details:", {
+        phaseId: id,
+        categoryId: id1,
+        amount: amount.toString(),
+        quantity,
+        refAddress,
+      });
 
       toast.loading("Buying Node...", { duration: 5000 });
     } catch (error) {
@@ -386,7 +400,7 @@ const SaleNode = () => {
               </div>
               <div className="row">
                 {phaseList.map((phase, index) => (
-                  <div className="col-lg-4" key={phase.id}>
+                  <div className="col-lg-4" key={index + 1}>
                     <div className="bgSlot d-flex justify-content-between text-white font-weight-bold p-2">
                       <span>{phase.title}</span>
                       <span>${phase.price}</span>
@@ -456,15 +470,17 @@ const SaleNode = () => {
                       <div className="d-flex stsbox justify-content-between align-items-center border rounded p-2 mb-2">
                         <button
                           className="py-0 btn btn-outline-secondary"
-                          onClick={() => handleMinus(phase.id)}
+                          onClick={() => handleMinus((index + 1).toString())}
                           disabled={isBuying || isApproving}
                         >
                           -
                         </button>
-                        <span className="fw-bold">{counts[phase.id] || 1}</span>
+                        <span className="fw-bold">
+                          {counts[index + 1] || 1}
+                        </span>
                         <button
                           className="py-0 btn btn-outline-secondary"
-                          onClick={() => handlePlus(phase.id)}
+                          onClick={() => handlePlus((index + 1).toString())}
                           disabled={isBuying || isApproving}
                         >
                           +
@@ -473,7 +489,7 @@ const SaleNode = () => {
                       <div className="d-flex justify-content-between mb-2 small mb-4">
                         <span>
                           Total Price:{" "}
-                          {((counts[phase.id] || 1) *
+                          {((counts[index + 1] || 1) *
                             Number(prices[index]?.[0])) /
                             10 ** 18}{" "}
                           USDT
@@ -491,13 +507,10 @@ const SaleNode = () => {
                         </div>
                       )}
                       {allowance >=
-                      (counts[phase.id] || 1) * Number(prices[index]?.[0]) ? (
+                      (counts[index + 1] || 1) * Number(prices[index]?.[0]) ? (
                         <button
                           onClick={() =>
-                            buyTokenNodeContract(
-                              phase.id,
-                              BigInt(Math.floor(Number(phase.price)))
-                            )
+                            buyTokenNodeContract(index + 1, prices[index]?.[0])
                           }
                           className="btn btnpink3 rounded-pill w-100 fw-bold py-2"
                           disabled={isBuying || isApproving}

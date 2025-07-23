@@ -5,10 +5,17 @@ import { useRouter } from "next/navigation";
 import { getPhaseList } from "@/services/api";
 import { useAccount, useReadContract } from "wagmi";
 import { ContractSaleABI, ContractSaleAddress } from "@/constants/contract";
-
+type RecordItem = {
+  phase: bigint;
+  category: bigint;
+  amount: bigint;
+  timeStamp: bigint;
+};
 const BuyNode = () => {
   const router = useRouter();
   const { address } = useAccount();
+
+  const [datahest, setdatahest] = useState<RecordItem[]>([]);
   const [phaseList, setPhaseList] = useState<
     { id: string; title: string; total: number }[]
   >([]);
@@ -66,8 +73,8 @@ const BuyNode = () => {
       // console.log("userRecords is not an array:", userRecords);
       return;
     }
-
-    // console.log("Raw userRecords:", userRecords);
+    setdatahest(userRecords);
+    console.log("Raw userRecords:", userRecords);
 
     // Initialize array for phases 1 to 10 (index 0 to 9)
     const totals = Array(10).fill(BigInt(0));
@@ -110,6 +117,18 @@ const BuyNode = () => {
   const goToDashboard = (userId: string) => {
     router.push(`/Sale?id=${userId}`);
   };
+
+  // const dataContect = datahest
+  //   .filter((item) => item.phase === 1n) // Compare with bigint, not string
+  //   .map((item) => {
+  //     return {
+  //       phase: item.phase,
+  //       category: item.category,
+  //       amount: item.amount,
+  //       timeStamp: item.timeStamp,
+  //     };
+  //   });
+  // console.log(dataContect, "dataContect");
 
   return (
     <main id="main">
@@ -175,6 +194,36 @@ const BuyNode = () => {
                     <span>Purchased Node</span>
                     <span>{phaseTotals[index]}</span>
                   </div>
+                  {/* {index == 0 && (
+                    <div className=" flex-column mt-2">
+                      {dataContect.map((ite) => {
+                        return (
+                          <div
+                            className="d-flex flex-wrap justify-content-between align-items-center border p-2 mb-2 rounded"
+                            key={ite.category.toString()}
+                          >
+                            <p className="mb-0 fw-bold text-white">
+                              {ite.category.toString() == "1"
+                                ? "Premium Validator"
+                                : ite.category.toString() == "2"
+                                ? "Standard Validator"
+                                : ite.category.toString() == "3"
+                                ? "Observer Node"
+                                : ite.category.toString() == "4"
+                                ? "Rating Node"
+                                : ite.category.toString() == "5"
+                                ? "Micro Node"
+                                : "---"}
+                            </p>
+                            <p className="mb-0  text-white">
+                              {ite.amount.toString()}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )} */}
+
                   <div className="text-center mt-3">
                     <button
                       onClick={() => goToDashboard(phase.id)}
