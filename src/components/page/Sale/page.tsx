@@ -314,6 +314,185 @@ const SaleNode = () => {
     fetchPrices();
   }, [id]);
 
+  // const { data, error } = useReadContract({
+  //   address: ContractSaleAddress as `0x${string}`,
+  //   abi: ContractSaleABI,
+  //   functionName: "getUserRecord",
+  //   args: [address as `0x${string}`],
+  //   query: { enabled: !!address },
+  // });
+
+  // const [phaseTotals, setPhaseTotals] = useState<bigint[]>(
+  //   Array(5).fill(BigInt(0))
+  // );
+  // const [phaseCategoryTotals, setPhaseCategoryTotals] = useState<{
+  //   [phase: number]: { [category: number]: bigint };
+  // }>({});
+  // useEffect(() => {
+  //   if (error) {
+  //     console.error("Contract error:", error);
+  //     return;
+  //   }
+
+  //   if (!data || !Array.isArray(data) || data.length < 2) {
+  //     console.log("Invalid data structure:", data);
+  //     return;
+  //   }
+
+  //   const userRecords = data[1] as {
+  //     phase: bigint;
+  //     category: bigint;
+  //     amount: bigint;
+  //     timeStamp: bigint;
+  //   }[];
+
+  //   if (!Array.isArray(userRecords)) return;
+
+  //   const totals: {
+  //     [phase: number]: { [category: number]: bigint };
+  //   } = {};
+
+  //   for (const record of userRecords) {
+  //     if (!record || typeof record !== "object") continue;
+
+  //     const phase = Number(record.phase);
+  //     const category = Number(record.category);
+  //     const amount = record.amount;
+
+  //     if (
+  //       isNaN(phase) ||
+  //       phase < 1 ||
+  //       phase > 10 ||
+  //       isNaN(category) ||
+  //       category < 1 ||
+  //       category > 5
+  //     ) {
+  //       console.log("Invalid record:", record);
+  //       continue;
+  //     }
+
+  //     if (!totals[phase]) {
+  //       totals[phase] = {};
+  //     }
+
+  //     // Initialize all categories 1–5 with 0 if not already present
+  //     for (let cat = 1; cat <= 5; cat++) {
+  //       if (!totals[phase][cat]) {
+  //         totals[phase][cat] = BigInt(0);
+  //       }
+  //     }
+
+  //     // Add amount to correct category
+  //     totals[phase][category] += amount;
+
+  //     console.log(
+  //       `Added ${amount} to phase ${phase}, category ${category}, total: ${totals[phase][category]}`
+  //     );
+  //   }
+
+  //   console.log("Phase-Category totals:", totals);
+  //   setPhaseCategoryTotals(totals);
+  // }, [data, error]);
+
+  // useEffect(() => {
+  //   console.log("Updated phaseTotals:", phaseTotals[0]);
+  // }, [phaseTotals]);
+
+  // const value = phaseCategoryTotals[0];
+  // console.log(value, "value");
+
+  const { data, error } = useReadContract({
+    address: ContractSaleAddress as `0x${string}`,
+    abi: ContractSaleABI,
+    functionName: "getUserRecord",
+    args: [address as `0x${string}`],
+    query: { enabled: !!address },
+  });
+
+  // Array format: [ [Cat1–5 for Phase1], [Cat1–5 for Phase2], ..., [Cat1–5 for Phase10] ]
+  const [phaseCategoryTotals, setPhaseCategoryTotals] = useState<bigint[][]>(
+    Array.from({ length: 10 }, () => Array(5).fill(BigInt(0)))
+  );
+
+  useEffect(() => {
+    if (error) {
+      console.error("Contract error:", error);
+      return;
+    }
+
+    if (!data || !Array.isArray(data) || data.length < 2) {
+      // console.log("Invalid data structure:", data);
+      return;
+    }
+
+    const userRecords = data[1] as {
+      phase: bigint;
+      category: bigint;
+      amount: bigint;
+      timeStamp: bigint;
+    }[];
+
+    if (!Array.isArray(userRecords)) return;
+
+    const totals: {
+      [phase: number]: { [category: number]: bigint };
+    } = {};
+
+    for (const record of userRecords) {
+      if (!record || typeof record !== "object") continue;
+
+      const phase = Number(record.phase);
+      const category = Number(record.category);
+      const amount = record.amount;
+
+      if (
+        isNaN(phase) ||
+        phase < 1 ||
+        phase > 10 ||
+        isNaN(category) ||
+        category < 1 ||
+        category > 5
+      ) {
+        console.log("Invalid record skipped:", record);
+        continue;
+      }
+
+      if (!totals[phase]) totals[phase] = {};
+      for (let cat = 1; cat <= 5; cat++) {
+        if (!totals[phase][cat]) {
+          totals[phase][cat] = BigInt(0);
+        }
+      }
+
+      totals[phase][category] += amount;
+    }
+
+    // Convert totals to array of 10 phases × 5 categories
+    const resultArray: bigint[][] = [];
+
+    for (let phase = 1; phase <= 10; phase++) {
+      const catTotals: bigint[] = [];
+      for (let cat = 1; cat <= 5; cat++) {
+        const value = totals[phase]?.[cat] ?? BigInt(0);
+        catTotals.push(value);
+      }
+      resultArray.push(catTotals);
+    }
+
+    setPhaseCategoryTotals(resultArray);
+  }, [data, error]);
+  console.log("Updated phaseCategoryTotals:", phaseCategoryTotals[0]?.[4]);
+
+  const { data: balance } = useReadContract({
+    address: DepositToken as `0x${string}`,
+    abi: DepositTokenABI,
+    functionName: "balanceOf",
+    args: [address as `0x${string}`],
+    query: { enabled: !!address },
+  });
+
+  console.log(Number(balance) / 10 ** 18, "balance");
+
   return (
     <>
       {isModalOpen && (
