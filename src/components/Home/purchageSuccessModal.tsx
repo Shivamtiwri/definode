@@ -9,35 +9,41 @@ import Link from "next/link";
 // import "bootstrap/dist/css/bootstrap.min.css";
 
 interface IProps {
-  hash: any;
+  hash: string;
   categoryId: number;
-  setIsOpen: any;
+  setIsOpen: (val: boolean) => void;
   isOpen: boolean;
 }
-
+interface ConfettiParticle {
+  id: number;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  color: string;
+}
 const validator = ["", "PREMIUM", "STANDARD", "OBSERVER", "RATING", "MICRO"];
-
-const ethLamports = (value: number) => {
-  return value / 10 ** 18;
-};
 
 const PurchaseSuccessModal = (props: IProps) => {
   const { hash, setIsOpen, categoryId, isOpen } = props;
-  const [confetti, setConfetti] = useState([]);
+  const [confetti, setConfetti] = useState<ConfettiParticle[]>([]);
 
   // Generate confetti particles
   useEffect(() => {
     if (isOpen) {
-      const particles: any = Array.from({ length: 50 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        rotation: Math.random() * 360,
-        scale: Math.random() * 0.5 + 0.5,
-        color: ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][
-          Math.floor(Math.random() * 5)
-        ],
-      }));
+      const particles: ConfettiParticle[] = Array.from(
+        { length: 50 },
+        (_, i) => ({
+          id: i,
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          rotation: Math.random() * 360,
+          scale: Math.random() * 0.5 + 0.5,
+          color: ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444"][
+            Math.floor(Math.random() * 5)
+          ],
+        })
+      );
       setConfetti(particles);
     }
   }, [isOpen]);
@@ -117,20 +123,25 @@ const PurchaseSuccessModal = (props: IProps) => {
     tap: { scale: 0.95 },
   };
 
-  const confettiVariants: Variants = {
-    hidden: { opacity: 0, y: -20, scale: 0 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: [0, -20, 100],
-      scale: [0, 1, 0],
-      rotate: [0, 180, 360],
-      transition: {
-        delay: i * 0.02,
-        duration: 1.5,
-        ease: "easeOut" as Easing,
-      },
-    }),
-  };
+  {
+    confetti.map((particle, i) => (
+      <motion.div
+        key={particle.id}
+        className="position-absolute rounded-circle"
+        style={{
+          width: "12px",
+          height: "12px",
+          left: `${particle.x}%`,
+          top: `${particle.y}%`,
+          backgroundColor: particle.color,
+        }}
+        // variants={confettiVariants}
+        initial="hidden"
+        animate="visible"
+        custom={i}
+      />
+    ));
+  }
 
   const categoryStyles: Record<
     number,
@@ -172,7 +183,7 @@ const PurchaseSuccessModal = (props: IProps) => {
             className="position-fixed top-0 start-0 w-100 h-100 pointer-events-none"
             style={{ zIndex: 1050 }}
           >
-            {map(confetti, (particle: any, i) => (
+            {confetti.map((particle, i) => (
               <motion.div
                 key={particle.id}
                 className="position-absolute rounded-circle"
@@ -183,7 +194,7 @@ const PurchaseSuccessModal = (props: IProps) => {
                   top: `${particle.y}%`,
                   backgroundColor: particle.color,
                 }}
-                variants={confettiVariants}
+                // variants={confettiVariants}
                 initial="hidden"
                 animate="visible"
                 custom={i}

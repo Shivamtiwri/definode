@@ -4,6 +4,7 @@ import axios from "axios";
 
 const apiInstance = axios.create({
   baseURL:
+    // process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.29.84:4401/api",
     process.env.NEXT_PUBLIC_API_BASE_URL || "https://restapiv1.definode.io/api",
   timeout: 10000,
   headers: {

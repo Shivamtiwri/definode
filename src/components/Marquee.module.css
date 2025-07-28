@@ -1,0 +1,37 @@
+.marqueeWrapper {
+  overflow: hidden;
+  height: 25px;
+  position: relative;
+  background: #ffe6e6;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 10s linear infinite;
+  padding-left: 100%;
+  font-weight: bold;
+  color: #e60000;
+  font-size: 0.9rem;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.saleCard {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.saleCard:hover {
+  transform: translateY(-5px) scale(1.02);
+  /* box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12); */
+  z-index: 1;
+}
